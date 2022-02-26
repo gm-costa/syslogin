@@ -1,11 +1,6 @@
-from curses import echo
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import models
-
-
-# def conexao():
-#     return "mysql+pymysql://aluno:aluno@localhost:3306/db_login"
 
 class ConfigDao():
 
@@ -30,7 +25,8 @@ class ConfigDao():
 class UsuarioDao():
 
     @classmethod
-    def salvar(cls, usuario: models.Usuario, sessao):
+    def salvar(cls, usuario: models.Usuario, engine):
+        sessao = ConfigDao.criaSession(engine)
         try:
             sessao.add(usuario)
             sessao.commit()
@@ -38,17 +34,19 @@ class UsuarioDao():
             sessao.rollback()
 
     @classmethod
-    def alterar(cls, usuario: models.Usuario, sessao):
+    def alterar(cls, usuario: models.Usuario, engine):
+        sessao = ConfigDao.criaSession(engine)
         x = sessao.query(models.Usuario).filter(
             models.Usuario.id == usuario.id).all()
 
+        if len(usuario.nome) > 0:
+            x[0].nome = usuario.nome
+        if len(usuario.email) > 0:
+            x[0].email = usuario.email
+        if len(usuario.senha) > 0:
+            x[0].senha = usuario.senha
+    
         try:
-            if len(usuario.nome) > 0:
-                x[0].nome = usuario.nome
-            if len(usuario.email) > 0:
-                x[0].email = usuario.email
-            if len(usuario.senha) > 0:
-                x[0].senha = usuario.senha
             sessao.commit()
         except:
             sessao.rollback()
@@ -62,9 +60,6 @@ class UsuarioDao():
             sessao.rollback()
 
     @classmethod
-    def listar(cls, sessao):
+    def listar(cls, engine):
+        sessao = ConfigDao.criaSession(engine)
         return sessao.query(models.Usuario).all()
-
-    @classmethod
-    def logado(cls):
-        ...

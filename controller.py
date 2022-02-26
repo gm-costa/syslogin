@@ -1,6 +1,5 @@
-from abc import abstractmethod
 from dao import *
-from models import Config, Usuario
+from models import Usuario
 from hashlib import sha256
 
 
@@ -16,12 +15,6 @@ class ConfigController():
         except Exception as e:
             print(f'Ocorreu um erro: {e}')
 
-    def cria_session(engine):
-        try:
-            return ConfigDao.criaSession(engine)
-        except Exception as e:
-            print(f'Ocorreu um erro: {e}')
-
     def cria_tabela(engine):
         try:
             return ConfigDao.criaTabela(engine)
@@ -31,37 +24,49 @@ class ConfigController():
 
 class UsuarioController():
 
-    def cadastrar_usuario(self, nome, email, senha, session):
+    def cadastrar_usuario(self, nome, email, senha, engine):
         try:
             hash_senha = calcula_hash(senha)
             usuario = Usuario(nome=nome, email=email, senha=hash_senha)
-            UsuarioDao.salvar(usuario, session)
+            UsuarioDao.salvar(usuario, engine)
             return 1
         except:
             return 2
 
-    def alterar_usuario(self, id, nome, email, senha, session):
+    def alterar_usuario(self, id, nome, email, senha, engine):
         try:
             hash_senha = senha
             if len(senha) > 0:
                 hash_senha = calcula_hash(senha)
             usuario = Usuario(id=id, nome=nome, email=email, senha=hash_senha)
-            UsuarioDao.alterar(usuario, session)
+            UsuarioDao.alterar(usuario, engine)
             return 1
         except:
             return 2
 
-    def remover_usuario(self, id, session):
+    def remover_usuario(self, id, engine):
         try:
-            x = session.query(Usuario).filter(Usuario.id == id).one()
-            UsuarioDao.remover(x[0], session)
+            sessao = ConfigDao.criaSession(engine)
+            x = sessao.query(Usuario).filter(Usuario.id == id).one()
+            UsuarioDao.remover(x, sessao)
             return 1
         except:
             return 2
 
     @staticmethod
-    def listar_usuarios(session):
-        return UsuarioDao.listar(session)
+    def listar_usuarios(engine):
+        return UsuarioDao.listar(engine)
 
-    def existe_usuario(self, id, session):
-        return len(session.query(Usuario).filter(Usuario.id == id).all()) > 0
+    def existe_usuario(self, id, engine):
+        sessao = ConfigDao.criaSession(engine)
+        return len(sessao.query(Usuario).filter(Usuario.id == id).all()) > 0
+
+    @staticmethod
+    def logar(engine, email, senha):
+        hash_senha = calcula_hash(senha)
+        sessao = ConfigDao.criaSession(engine)
+        try:
+            usuario = sessao.query(Usuario).filter(Usuario.email == email).filter(Usuario.senha == hash_senha).one()
+            return 1, usuario.nome
+        except:
+            return 2, None
